@@ -8,7 +8,53 @@ var activeChannelPage;
 
 var userContext = { identity: null};
 
+var fcmToken = '';
+
+
 $(document).ready(function() {
+
+  // Your web app's Firebase configuration
+  var firebaseConfig = {
+    apiKey: "AIzaSyBPsLQV1lMV--SpHdBmcszEZqxGv3Gz8JQ",
+    authDomain: "curacall.firebaseapp.com",
+    databaseURL: "https://curacall.firebaseio.com",
+    projectId: "curacall",
+    storageBucket: "curacall.appspot.com",
+    messagingSenderId: "895450927675",
+    appId: "1:895450927675:web:9f636681a6a3e133ea021e"
+  };
+  
+  // Initialize Firebase
+  firebase.initializeApp(firebaseConfig);
+  
+  console.log('firebase', firebase);
+  
+  if (firebase && firebase.messaging()) {
+    // requesting permission to use push notifications
+    firebase.messaging().requestPermission().then(() => {
+      // getting FCM token
+      firebase.messaging().getToken().then((fcmTokenn) => {
+        console.log('fcmToken', fcmTokenn);
+        fcmToken = fcmTokenn;
+        console.log('fcmToken', fcmToken);
+        // continue with Step 7 here 
+        // ... 
+        // ... 
+      }).catch((err) => {
+        // can't get token
+        console.log(`can't get token`, err);
+      });
+    }).catch((err) => {
+      console.log(`can't request permission or permission hasn't been granted to the web app by the user`, err);
+      // can't request permission or permission hasn't been granted to the web app by the user
+    });
+  } else {
+    // no Firebase library imported or Firebase library wasn't correctly initialized
+    console.log(`no Firebase library imported or Firebase library wasn't correctly initialized`);
+  
+  }
+  
+
   $('#login-name').focus();
 
   $('#login-button').on('click', function() {
@@ -236,6 +282,15 @@ function logIn(identity, displayName) {
         client.on('channelUpdated', updateChannels);
         client.on('channelLeft', leaveChannel);
         client.on('channelRemoved', leaveChannel);
+
+        // passing FCM token to the `chatClientInstance` to register for push notifications
+        console.log('fcmToken', fcmToken);
+        client.setPushRegistrationId('fcm', fcmToken);
+
+        // registering event listener on new message from firebase to pass it to the Chat SDK for parsing
+        firebase.messaging().onMessage(payload => {
+          client.handlePushNotification(payload);
+        });
       })
       .catch(function(err) {
         throw err;
